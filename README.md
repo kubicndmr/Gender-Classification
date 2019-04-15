@@ -7,6 +7,9 @@ This is a small pyTorch project. My initial aim was classifiy speech signals acc
 
 1. Use a database consist of both genders.
    - Ex: Lombard_Speech_Database_German
-2. you may run pre-processing.py to arrange files
-3.put enough speech samples into a folder 'testset'
-4.run: main.py 
+   
+2. You may run pre-processing.py to arrange files.
+
+3. Put enough speech samples into a folder 'testset'.
+
+4. Run: main.py 
