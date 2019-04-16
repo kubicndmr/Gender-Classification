@@ -7,11 +7,12 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import matplotlib.pyplot as plt
+from scipy.fftpack import fft
 
 DATA_PATH = 'dataset/'
 TEST_PATH = 'testset/'
 
-inputDim = 512
+inputDim = 256
 hiddenDim = 512
 classes = 1
 
@@ -44,16 +45,11 @@ class SpeechDataset(Dataset):
     def window(self,x,sr):
         offset = np.random.randint(0,sr-inputDim-1)
         return x[offset:offset+self.inputDim]
-
-    def FFT(self,y):
-        return np.abs(np.fft.fft(y)) ** 2
     
     def __getitem__(self,idx):
         wav,sr = librosa.load(self.path+'/'+self.dataList[idx],sr=16000,duration=2.0)
         wav = SpeechDataset.window(self,wav,sr)
-        f = SpeechDataset.FFT(self,wav)
-        f = f - np.mean(f,axis=0,dtype=np.float64)
-        f = f / np.linalg.norm(f)
+        f = np.log(np.abs(fft(wav)))
         if self.dataLabel[idx]=='f':
             l = np.asarray([0]).astype(float)
         elif self.dataLabel[idx]=='m':
@@ -93,6 +89,7 @@ def trainModel(model,numIter,loader,learning_rate):
     loss = [None]*numIter
     
     for epoch in range(numIter):
+        average_cost = 0
         for i, (fSpec,labels) in enumerate(loader):
             f = torch.tensor(fSpec,dtype=torch.float,device=device)
             y = torch.tensor(labels,dtype=torch.float,device=device)
@@ -104,7 +101,10 @@ def trainModel(model,numIter,loader,learning_rate):
             currentCost.backward()
             optimizer.step()
             
-        loss[epoch] = currentCost.item()
+            average_cost += currentCost.item()
+            
+        average_cost = average_cost / len(dataLabel)    
+        loss[epoch] = average_cost
         print('Epoch| '+ str(epoch+1))
         print('Loss | '+ str(loss[epoch]))
     
