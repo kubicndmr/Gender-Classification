@@ -69,6 +69,7 @@ class TrainingDataset(Dataset):
 
 
 trainSet = TrainingDataset(trainList,trainLabel,pp.TRAIN_PATH,inputDim)
+validSet = TrainingDataset(validList,validLabel,pp.VALID_PATH,inputDim)
 
 
 class TestingDataset(Dataset):
@@ -98,13 +99,9 @@ class TestingDataset(Dataset):
             l = np.asarray([1]).astype(float)
         return [f,l]
 
-
-np.random.seed(101)
-randomArrayVal = np.random.randint(0,sampling_rate-inputDim-1,size=len(validList))
 np.random.seed(102)
 randomArrayTe = np.random.randint(0,sampling_rate-inputDim-1,size=len(testList))
 
-validSet = TestingDataset(validList,validLabel,pp.VALID_PATH,inputDim,randomArrayVal,sampling_rate)
 testSet = TestingDataset(testList,testLabel,pp.TEST_PATH,inputDim,randomArrayTe,sampling_rate)
 
 trainLoader = torch.utils.data.DataLoader(dataset=trainSet,batch_size=4,shuffle=True)
@@ -169,7 +166,7 @@ def trainModel(model,num_epochs,loaders,learning_rate):
                     output = model(f)
                     output[output>=0.5] = 1
                     output[output<0.5] = 0
-                    corrects += torch.sum(output== y)
+                    corrects += torch.sum(output == y)
                         
         avg_trn_loss = trn_loss / len(trainLabel)
         avg_val_loss = corrects.numpy() / len(validLabel)
@@ -177,11 +174,11 @@ def trainModel(model,num_epochs,loaders,learning_rate):
         valLoss[epoch] = avg_val_loss
         print('Epoch          | '+ str(epoch+1))
         print('Training Loss  | '+ str(avg_trn_loss))
-        print('Validation Loss| ' + str(avg_val_loss))
+        print('Validation Accuraciy| ' + str(avg_val_loss))
     
     fig = plt.figure()
     plt.plot(range(num_epochs),trnLoss, 'b',label='Training Loss')
-    plt.plot(range(num_epochs),valLoss, 'r',label='Validation Loss')
+    plt.plot(range(num_epochs),valLoss, 'r',label='Validation Accuracy')
     plt.legend(loc=1)
     fig.suptitle('Gender Classification', fontsize=24)
     plt.xlabel('epochs', fontsize=14)
