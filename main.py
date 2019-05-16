@@ -9,8 +9,9 @@ import pre_processing as pp
 import numpy as np
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from scipy.fftpack import fft
+from scipy import signal
 
 PP = False #switch for using pre_processing.py
 
@@ -59,16 +60,21 @@ class TrainingDataset(Dataset):
     def __getitem__(self,idx):
         wav,sr = librosa.load(self.path+'/'+self.dataList[idx],sr=16000)
         wav = TrainingDataset.window(self,wav,sr)
-              
+        
         f = np.abs(fft(wav))
         f = f[self.inputDim:]
-        f = f / np.linalg.norm(f)
-                
-        if self.dataLabel[idx]=='f':
+        
+        N = 10
+        Wn = 0.45
+        b,a = signal.butter(N,Wn,btype='low',output='ba') 
+        filteredf = signal.lfilter(b,a,f)
+        filteredf = filteredf / np.linalg.norm(filteredf)
+        
+        if self.dataLabel[idx]=='F':
             l = np.asarray([0]).astype(float)
-        elif self.dataLabel[idx]=='m':
+        elif self.dataLabel[idx]=='M':
             l = np.asarray([1]).astype(float)
-        return f,l
+        return filteredf,l
 
 
 trainSet = TrainingDataset(trainList,trainLabel,pp.TRAIN_PATH,inputDim)
@@ -98,13 +104,18 @@ class TestingDataset(Dataset):
         
         f = np.abs(fft(wav))
         f = f[self.inputDim:]
-        f = f / np.linalg.norm(f)
         
-        if self.dataLabel[idx]=='f':
+        N = 10
+        Wn = 0.45
+        b,a = signal.butter(N,Wn,btype='low',output='ba') 
+        filteredf = signal.lfilter(b,a,f)
+        filteredf = filteredf / np.linalg.norm(filteredf)
+        
+        if self.dataLabel[idx]=='F':
             l = np.asarray([0]).astype(float)
-        elif self.dataLabel[idx]=='m':
+        elif self.dataLabel[idx]=='M':
             l = np.asarray([1]).astype(float)
-        return f,l
+        return filteredf,l
 
 np.random.seed(1)
 randomArrayVal = np.random.randint(0,sampling_rate-inputDim-1,size=len(validList))
@@ -124,12 +135,13 @@ class Model(nn.Module):
         self.layer1 = nn.Linear(in_dim,hidden_dim)
         self.layer2 = nn.Linear(hidden_dim,hidden_dim)
         self.layer3 = nn.Linear(hidden_dim,num_classes)
-        self.drop = nn.Dropout(p=0.2)
+        self.relu = nn.ReLU()
+        self.drop = nn.Dropout(p=0.5)
 
     def forward(self,x):
-        a = self.layer1(x)
+        a = self.relu(self.layer1(x))
         a = self.drop(a)
-        a = self.layer2(a)
+        a = self.relu(self.layer2(a))
         a = self.drop(a)
         a = self.layer3(a)
         return torch.sigmoid(a)
@@ -141,7 +153,7 @@ def trainModel(model,num_epochs,loaders,learning_rate):
     
     criteria = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)  
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=60, gamma=0.1) 
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,step_size=20, gamma=0.5) 
     trnLoss = [None]*num_epochs
     valLoss = [None]*num_epochs
     lr_hist = [None]*num_epochs
@@ -150,6 +162,7 @@ def trainModel(model,num_epochs,loaders,learning_rate):
         
         trn_loss = 0
         val_loss = 0
+    
         scheduler.step()
         
         for phase in ['train','valid']:
@@ -176,9 +189,8 @@ def trainModel(model,num_epochs,loaders,learning_rate):
                 elif phase == 'valid':
                     output = model(f)
                     val_loss += currentCost.item()
-                    
-        #early stopping
-        # en iyi networku kaydet
+            
+            
         avg_trn_loss = trn_loss / len(trainLabel)
         avg_val_loss = val_loss / len(validLabel)
         trnLoss[epoch] = avg_trn_loss
@@ -194,7 +206,7 @@ def trainModel(model,num_epochs,loaders,learning_rate):
     plt.legend(loc=1)
     fig.suptitle('Gender Classification', fontsize=24)
     plt.xlabel('epochs', fontsize=14)
-    plt.ylabel('Training Loss (MSE)', fontsize=14)
+    plt.ylabel('Training Loss (BCE)', fontsize=14)
     plt.savefig('LossFunc.png')
 
 
