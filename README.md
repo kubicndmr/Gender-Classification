@@ -3,7 +3,7 @@ Gender Classification of Speech Signals
 
 Notes
 --------
-This is a small PyTorch project. My initial aim was classifiy speech signals according to frequency features and practice python. 
+This is a small PyTorch project. My initial aim was classifiy speech signals according to frequency features. 
 
 So far models' accuracy is 91 percent in 137 test sample.
 
