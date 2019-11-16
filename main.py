@@ -14,7 +14,7 @@ from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from scipy.fftpack import fft
 from scipy import signal
 
-PP = False #switch for using pre_processing.py
+PP = True  #switch for using pre_processing.py
 
 valid = 10 # Percentage of the database to use for training and validation 
 test = 10
@@ -24,6 +24,7 @@ batch_size = 8
 hiddenDim = 1024
 classes = 1
 bias = 0.15
+sampling_rate = 8000
 
 if PP:
     pp.fileOrder(valid,test)
@@ -202,8 +203,6 @@ with torch.no_grad():
             y = labels.clone().detach().float()
                 
             output = model(f)
-            print(output)
-            print(y)
             
             output = utils.first_decision(output,bias)
             output[output>=threshold] = 1
