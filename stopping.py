@@ -3,6 +3,7 @@ import torch
 
 class EarlyStoppingCB:
     """Early stops the training if validation loss doesn't improve after a given patience."""
+    """ This calss is mainly retrieved from: https://github.com/Bjarten/early-stopping-pytorch """
     def __init__(self, patience=4, verbose=False, delta=0):
         """
         Args:
