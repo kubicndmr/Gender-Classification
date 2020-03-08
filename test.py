@@ -37,8 +37,7 @@ with t.no_grad():
         results.append([y_hat,y])
         if np.allclose(y_hat,y,atol=0.2,rtol=0.2):
             tp +=1
-print(tp)
-print(len(os.listdir('testset/')))
+
 acc = tp/len(os.listdir('testset/'))*100
 print(f'Accuracy in test set is %{acc} percent')
 
